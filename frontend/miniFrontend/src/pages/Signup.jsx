@@ -132,7 +132,7 @@ function Signup() {
         <div className="mt-4 text-center">
           <p className="text-sm">
             Already have an account?{" "}
-            <a href="/Login" className="text-red-500 hover:underline">
+            <a href="/login" className="text-red-500 hover:underline">
               Log in here
             </a>
           </p>

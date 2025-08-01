@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Route } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom'; 
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import Login from './Login';
 import Signup from './Signup';
 
-// Fix default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
@@ -14,7 +14,6 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-// Dummy articles for now
 const mockArticles = [
   {
     id: 1,
@@ -65,7 +64,7 @@ const HomePage = () => {
     }
     setFilteredArticles(results);
   }, [selectedTopic, searchQuery]);
-
+  const navigate = useNavigate();
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Navbar */}
@@ -79,10 +78,10 @@ const HomePage = () => {
             <h1 className="text-xl font-bold text-red-500">AroundU</h1>
           </div>
           <div className="flex space-x-2">
-            <button onClick={Login} className="px-4 py-1 border border-red-500 text-red-500 rounded hover:bg-red-500 hover:text-white">
+            <button  onClick={() => navigate('/login')} className="px-4 py-1 border border-red-500 text-red-500 rounded hover:bg-red-500 hover:text-white">
               Login
             </button>
-            <button onClick={Signup} className="px-4 py-1 bg-red-500 text-white rounded hover:bg-red-600">
+            <button onClick={() => navigate('/signup')} className="px-4 py-1 bg-red-500 text-white rounded hover:bg-red-600">
               Sign Up
             </button>
           </div>
