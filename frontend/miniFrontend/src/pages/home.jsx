@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { Route } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom'; 
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import Login from './Login';
 import Signup from './Signup';
 
+// Fix for leaflet marker icons
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
@@ -14,6 +14,7 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
+// Mock articles
 const mockArticles = [
   {
     id: 1,
@@ -31,12 +32,24 @@ const mockArticles = [
   },
 ];
 
+// Helper component to update map center
+const RecenterMap = ({ location }) => {
+  const map = useMap();
+  useEffect(() => {
+    map.setView(location, 13);
+  }, [location]);
+  return null;
+};
+
 const HomePage = () => {
   const [userLocation, setUserLocation] = useState([51.505, -0.09]);
   const [filteredArticles, setFilteredArticles] = useState(mockArticles);
   const [selectedTopic, setSelectedTopic] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const mapRef = useRef();
+  const navigate = useNavigate();
 
+  // Find my location
   const handleGeolocation = () => {
     if (!navigator.geolocation) {
       alert("Geolocation is not supported by your browser.");
@@ -44,7 +57,11 @@ const HomePage = () => {
     }
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        setUserLocation([position.coords.latitude, position.coords.longitude]);
+        const coords = [position.coords.latitude, position.coords.longitude];
+        setUserLocation(coords);
+        if (mapRef.current) {
+          mapRef.current.setView(coords, 13);
+        }
       },
       (error) => {
         alert(`Geolocation failed: ${error.message}`);
@@ -52,6 +69,22 @@ const HomePage = () => {
     );
   };
 
+  // Search and center on article
+  const handleSearch = () => {
+    const match = mockArticles.find(article =>
+      article.title.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    if (match) {
+      setUserLocation(match.location);
+      if (mapRef.current) {
+        mapRef.current.setView(match.location, 13);
+      }
+    } else {
+      alert("No matching article found.");
+    }
+  };
+
+  // Filter articles on topic or search query
   useEffect(() => {
     let results = mockArticles;
     if (selectedTopic !== "all") {
@@ -64,7 +97,7 @@ const HomePage = () => {
     }
     setFilteredArticles(results);
   }, [selectedTopic, searchQuery]);
-  const navigate = useNavigate();
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Navbar */}
@@ -78,7 +111,7 @@ const HomePage = () => {
             <h1 className="text-xl font-bold text-red-500">AroundU</h1>
           </div>
           <div className="flex space-x-2">
-            <button  onClick={() => navigate('/login')} className="px-4 py-1 border border-red-500 text-red-500 rounded hover:bg-red-500 hover:text-white">
+            <button onClick={() => navigate('/login')} className="px-4 py-1 border border-red-500 text-red-500 rounded hover:bg-red-500 hover:text-white">
               Login
             </button>
             <button onClick={() => navigate('/signup')} className="px-4 py-1 bg-red-500 text-white rounded hover:bg-red-600">
@@ -91,13 +124,24 @@ const HomePage = () => {
       {/* Main content */}
       <main className="container mx-auto p-4 flex-grow">
         <div className="flex flex-col md:flex-row gap-4 mb-6">
-          <input
-            type="text"
-            placeholder="Search by title..."
-            className="flex-1 p-2 border rounded"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+          {/* Search bar with icon */}
+          <div className="flex items-center border rounded overflow-hidden flex-1">
+            <input
+              type="text"
+              placeholder="Search by title..."
+              className="flex-1 p-2 outline-none"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <button
+              onClick={handleSearch}
+              className="p-2 bg-red-500 text-white hover:bg-red-600"
+            >
+              🔍
+            </button>
+          </div>
+
+          {/* Topic Filter */}
           <select
             value={selectedTopic}
             onChange={(e) => setSelectedTopic(e.target.value)}
@@ -107,6 +151,8 @@ const HomePage = () => {
             <option value="events">Events</option>
             <option value="traffic">Traffic</option>
           </select>
+
+          {/* Find My Location */}
           <button
             onClick={handleGeolocation}
             className="p-2 bg-red-500 text-white rounded hover:bg-red-600"
@@ -121,8 +167,9 @@ const HomePage = () => {
             center={userLocation}
             zoom={13}
             style={{ height: "100%", width: "100%" }}
-            key={userLocation.toString()} // force re-render on location change
+            whenCreated={(mapInstance) => { mapRef.current = mapInstance }}
           >
+            <RecenterMap location={userLocation} />
             <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
             {filteredArticles.map(article => (
               <Marker key={article.id} position={article.location}>
