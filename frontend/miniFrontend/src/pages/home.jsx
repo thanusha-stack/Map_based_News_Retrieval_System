@@ -1,187 +1,178 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom'; 
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
-import Login from './Login';
-import Signup from './Signup';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
+import L from "leaflet";
+import { FaMapMarkerAlt, FaSearch, FaCrosshairs, FaHistory } from "react-icons/fa";
 
-// Fix for leaflet marker icons
+const defaultCenter = [20.5937, 78.9629];
+const defaultZoom = 5;
+
+// Fix Leaflet's default marker icon in React
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+  iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
+  iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
+  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
 });
 
-// Mock articles
-const mockArticles = [
-  {
-    id: 1,
-    title: "Festival Downtown This Weekend",
-    summary: "Annual music festival with 50+ bands.",
-    location: [51.505, -0.09],
-    topic: "events",
-  },
-  {
-    id: 2,
-    title: "Road Closure Due to Construction",
-    summary: "Main Street closed until Friday.",
-    location: [51.51, -0.1],
-    topic: "traffic",
-  },
-];
+// Reverse geocode
+const reverseGeocode = async (lat, lng) => {
+  const res = await fetch(
+    `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`
+  );
+  const data = await res.json();
+  return data.display_name || "Unknown location";
+};
 
-// Helper component to update map center
-const RecenterMap = ({ location }) => {
-  const map = useMap();
-  useEffect(() => {
-    map.setView(location, 13);
-  }, [location]);
+// Forward geocode
+const forwardGeocode = async (place) => {
+  const res = await fetch(
+    `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(place)}`
+  );
+  const data = await res.json();
+  if (data.length > 0) {
+    return [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+  }
   return null;
 };
 
+// Map click handler
+function LocationMarker({ onSelectLocation }) {
+  useMapEvents({
+    click(e) {
+      onSelectLocation([e.latlng.lat, e.latlng.lng]);
+    },
+  });
+  return null;
+}
+
 const HomePage = () => {
-  const [userLocation, setUserLocation] = useState([51.505, -0.09]);
-  const [filteredArticles, setFilteredArticles] = useState(mockArticles);
-  const [selectedTopic, setSelectedTopic] = useState("all");
-  const [searchQuery, setSearchQuery] = useState("");
-  const mapRef = useRef();
   const navigate = useNavigate();
+  const [searchInput, setSearchInput] = useState("");
+  const [mapCenter, setMapCenter] = useState(defaultCenter);
+  const [markers, setMarkers] = useState([]);
+  const [recentSearches, setRecentSearches] = useState([]);
 
-  // Find my location
-  const handleGeolocation = () => {
-    if (!navigator.geolocation) {
-      alert("Geolocation is not supported by your browser.");
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const coords = [position.coords.latitude, position.coords.longitude];
-        setUserLocation(coords);
-        if (mapRef.current) {
-          mapRef.current.setView(coords, 13);
-        }
-      },
-      (error) => {
-        alert(`Geolocation failed: ${error.message}`);
-      }
-    );
-  };
-
-  // Search and center on article
-  const handleSearch = () => {
-    const match = mockArticles.find(article =>
-      article.title.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-    if (match) {
-      setUserLocation(match.location);
-      if (mapRef.current) {
-        mapRef.current.setView(match.location, 13);
-      }
-    } else {
-      alert("No matching article found.");
-    }
-  };
-
-  // Filter articles on topic or search query
   useEffect(() => {
-    let results = mockArticles;
-    if (selectedTopic !== "all") {
-      results = results.filter(article => article.topic === selectedTopic);
+    const stored = JSON.parse(localStorage.getItem("recentSearches") || "[]");
+    setRecentSearches(stored);
+  }, []);
+
+  const addRecentSearch = (name, coords) => {
+    const updated = [{ name, coords }, ...recentSearches].slice(0, 5);
+    setRecentSearches(updated);
+    localStorage.setItem("recentSearches", JSON.stringify(updated));
+  };
+
+  const handleSearch = async () => {
+    if (!searchInput) return;
+    const coords = await forwardGeocode(searchInput);
+    if (coords) {
+      setMapCenter(coords);
+      setMarkers([{ position: coords, name: searchInput }]);
+      addRecentSearch(searchInput, coords);
+      navigate("/news", { state: { clickedLocation: coords } });
+    } else {
+      alert("Location not found!");
     }
-    if (searchQuery) {
-      results = results.filter(article =>
-        article.title.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-    setFilteredArticles(results);
-  }, [selectedTopic, searchQuery]);
+  };
+
+  const handleFindMyLocation = () => {
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const coords = [pos.coords.latitude, pos.coords.longitude];
+        setMapCenter(coords);
+        const name = await reverseGeocode(...coords);
+        setMarkers([{ position: coords, name }]);
+        addRecentSearch(name, coords);
+        navigate("/news", { state: { clickedLocation: coords } });
+      },
+      (err) => {
+        console.error(err);
+        alert("Unable to get location.");
+      }
+    );
+  };
+
+  const handleMapClick = async (coords) => {
+    setMapCenter(coords);
+    const name = await reverseGeocode(...coords);
+    setMarkers([{ position: coords, name }]);
+    addRecentSearch(name, coords);
+    navigate("/news", { state: { clickedLocation: coords } });
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Navbar */}
-      <nav className="bg-white shadow p-4">
-        <div className="container mx-auto flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <svg width="40px" height="40px" viewBox="0 0 24 24" fill="none" stroke="#171616">
-              <path opacity="0.5" d="M3.46 20.54C4.93 22 7.29 22 12 22s7.07 0 8.54-1.46C22 19.07 22 16.71 22 12s0-7.07-1.46-8.54C19.07 2 16.71 2 12 2S4.93 2 3.46 3.46C2 4.93 2 7.29 2 12s0 7.07 1.46 8.54z" fill="#d00b0b" />
-              <path d="M13.42 17.36l3.51-9.16c.28-.73-.4-1.41-1.13-1.13l-9.17 3.51c-.83.32-.86 1.48-.04 1.72l3.48 1.06c.27.08.48.29.56.56l1.06 3.48c.24.82 1.4.79 1.73-.04z" fill="#d00b0b" />
-            </svg>
-            <h1 className="text-xl font-bold text-red-500">AroundU</h1>
-          </div>
-          <div className="flex space-x-2">
-            <button onClick={() => navigate('/login')} className="px-4 py-1 border border-red-500 text-red-500 rounded hover:bg-red-500 hover:text-white">
-              Login
-            </button>
-            <button onClick={() => navigate('/signup')} className="px-4 py-1 bg-red-500 text-white rounded hover:bg-red-600">
-              Sign Up
-            </button>
-          </div>
-        </div>
-      </nav>
+    <div className="min-h-screen bg-gradient-to-br from-red-300 to-red-500 flex flex-col items-center p-4">
+      <h1 className="text-3xl font-extrabold text-gray-800 mb-4">
+        🗺 Map-based News Finder
+      </h1>
 
-      {/* Main content */}
-      <main className="container mx-auto p-4 flex-grow">
-        <div className="flex flex-col md:flex-row gap-4 mb-6">
-          {/* Search bar with icon */}
-          <div className="flex items-center border rounded overflow-hidden flex-1">
-            <input
-              type="text"
-              placeholder="Search by title..."
-              className="flex-1 p-2 outline-none"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            <button
-              onClick={handleSearch}
-              className="p-2 bg-red-500 text-white hover:bg-red-600"
-            >
-              🔍
-            </button>
-          </div>
+      {/* Floating Search Bar */}
+      <div className="bg-white shadow-lg rounded-full flex items-center w-full max-w-2xl p-2 mb-4">
+        <FaSearch className="ml-3 text-gray-500" />
+        <input
+          type="text"
+          placeholder="Search location..."
+          className="flex-grow px-4 py-2 rounded-full outline-none"
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+        />
+        <button
+          onClick={handleSearch}
+          className="bg-white-500 hover:text-gray-300 text-red-500 px-4 py-2 rounded-full mx-1 transition"
+        >
+          Search
+        </button>
+        <button
+          onClick={handleFindMyLocation}
+          className="bg-red-500 hover:bg-red-300 text-white px-4 py-2 rounded-full mx-1 flex items-center transition"
+        >
+          <FaCrosshairs className="mr-1" /> Locate Me
+        </button>
+      </div>
 
-          {/* Topic Filter */}
-          <select
-            value={selectedTopic}
-            onChange={(e) => setSelectedTopic(e.target.value)}
-            className="p-2 border rounded"
-          >
-            <option value="all">All Topics</option>
-            <option value="events">Events</option>
-            <option value="traffic">Traffic</option>
-          </select>
+      {/* Map */}
+      <div className="relative w-full max-w-5xl h-[500px] rounded-2xl overflow-hidden shadow-lg border-4 border-white">
+        <MapContainer center={mapCenter} zoom={defaultZoom} style={{ height: "100%", width: "100%" }}>
+          <TileLayer
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution="&copy; OpenStreetMap contributors"
+          />
+          {markers.map((m, idx) => (
+            <Marker key={idx} position={m.position}>
+              <Popup>{m.name}</Popup>
+            </Marker>
+          ))}
+          <LocationMarker onSelectLocation={handleMapClick} />
+        </MapContainer>
+      </div>
 
-          {/* Find My Location */}
-          <button
-            onClick={handleGeolocation}
-            className="p-2 bg-red-500 text-white rounded hover:bg-red-600"
-          >
-            Find My Location
-          </button>
-        </div>
-
-        {/* Map */}
-        <div className="h-96 w-full mb-8 rounded-lg overflow-hidden shadow-md">
-          <MapContainer
-            center={userLocation}
-            zoom={13}
-            style={{ height: "100%", width: "100%" }}
-            whenCreated={(mapInstance) => { mapRef.current = mapInstance }}
-          >
-            <RecenterMap location={userLocation} />
-            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-            {filteredArticles.map(article => (
-              <Marker key={article.id} position={article.location}>
-                <Popup>
-                  <h3 className="font-bold">{article.title}</h3>
-                  <p>{article.summary}</p>
-                </Popup>
-              </Marker>
+      {/* Recent Searches */}
+      {recentSearches.length > 0 && (
+        <div className="mt-6 bg-white shadow-lg rounded-xl p-4 w-full max-w-md">
+          <h2 className="font-bold text-lg flex items-center mb-2">
+            <FaHistory className="mr-2 text-gray-600" /> Recent Searches
+          </h2>
+          <ul className="space-y-2">
+            {recentSearches.map((item, idx) => (
+              <li key={idx}>
+                <button
+                  onClick={() => {
+                    setMapCenter(item.coords);
+                    setMarkers([{ position: item.coords, name: item.name }]);
+                    navigate("/news", { state: { clickedLocation: item.coords } });
+                  }}
+                  className="flex items-center w-full text-left hover:bg-gray-100 p-2 rounded-lg transition"
+                >
+                  <FaMapMarkerAlt className="text-blue-500 mr-2" /> {item.name}
+                </button>
+              </li>
             ))}
-          </MapContainer>
+          </ul>
         </div>
-      </main>
+      )}
     </div>
   );
 };
