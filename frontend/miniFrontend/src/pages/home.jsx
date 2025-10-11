@@ -8,7 +8,6 @@ import { FaMapMarkerAlt, FaSearch, FaCrosshairs, FaHistory } from "react-icons/f
 const defaultCenter = [20.5937, 78.9629];
 const defaultZoom = 5;
 
-// Fix Leaflet's default marker icon in React
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
@@ -16,7 +15,6 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
 });
 
-// Reverse geocode
 const reverseGeocode = async (lat, lng) => {
   const res = await fetch(
     `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`
@@ -25,7 +23,6 @@ const reverseGeocode = async (lat, lng) => {
   return data.display_name || "Unknown location";
 };
 
-// Forward geocode
 const forwardGeocode = async (place) => {
   const res = await fetch(
     `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(place)}`
@@ -37,7 +34,6 @@ const forwardGeocode = async (place) => {
   return null;
 };
 
-// Map click handler
 function LocationMarker({ onSelectLocation }) {
   useMapEvents({
     click(e) {

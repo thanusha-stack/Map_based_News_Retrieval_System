@@ -38,7 +38,7 @@ function Login() {
 
     console.log("Form Data Submitted: ", formData);
 
-    navigate("/dashboard");
+    navigate("/home");
   };
 
   return (
