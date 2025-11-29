@@ -20,23 +20,11 @@ function Dashboard() {
 
             <div className="flex justify-center md:justify-start gap-4">
               <Link
-                to="/signUp"
+                to="/home"
                 className="px-6 py-3 bg-red-700 text-white font-medium rounded-full shadow-md hover:bg-red-800 hover:shadow-lg transition-all duration-300"
               >
                 Get Started
               </Link>
-            </div>
-
-            <div className="pt-4">
-              <p className="text-gray-500 text-sm uppercase tracking-widest">
-                Trusted by Top News Networks
-              </p>
-              <div className="flex gap-4 justify-center md:justify-start mt-2">
-                <span className="text-gray-600 font-semibold">BBC</span>
-                <span className="text-gray-600 font-semibold">CNN</span>
-                <span className="text-gray-600 font-semibold">NDTV</span>
-                <span className="text-gray-600 font-semibold">Reuters</span>
-              </div>
             </div>
           </div>
 

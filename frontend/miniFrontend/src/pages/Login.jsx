@@ -42,7 +42,7 @@ function Login() {
   };
 
   return (
-    <div className=" flex items-center justify-center bg-white lg:my-10 py-20 ">
+    <div className="flex items-center justify-center lg:my-10 py-20 bg-gray-100">
       <div className="max-w-md w-full bg-white p-8 rounded-lg border-2 shadow-md">
         <h1 className="text-3xl font-bold text-center text-red-500 mb-6">Login</h1>
         {errorMessage && (
