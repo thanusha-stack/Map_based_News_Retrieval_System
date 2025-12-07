@@ -4,11 +4,11 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "npm run build",
-    "lint": "eslint .",
-    "preview": "vite preview"
-  },
+  "build": "vite build",
+  "dev": "vite",
+  "preview": "vite preview"
+}
+,
   "dependencies": {
     "@tailwindcss/vite": "^4.1.11",
     "framer-motion": "^12.23.24",
