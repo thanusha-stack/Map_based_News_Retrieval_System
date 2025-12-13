@@ -6,24 +6,13 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "API key missing" });
   }
 
-  const categoryKeywords = {
-    sports: "sports OR cricket OR football",
-    politics: "politics OR government OR election",
-    weather: "weather OR climate OR rain",
-    general: "news OR latest"
-  };
-
-  const query = `${city} ${categoryKeywords[category] || ""}`;
-
-  const url = `https://gnews.io/api/v4/search?q=${encodeURIComponent(
-    query
-  )}&lang=en&country=in&from=${from}&to=${to}&max=10&apikey=${API_KEY}`;
+  const url = `https://gnews.io/api/v4/search?q=${city}&lang=en&country=in&max=10&from=${from}&to=${to}&apikey=${API_KEY}`;
 
   try {
     const response = await fetch(url);
     const data = await response.json();
-    return res.status(200).json(data);
-  } catch (error) {
-    return res.status(500).json({ error: "Failed to fetch news" });
+    res.status(200).json(data);
+  } catch {
+    res.status(500).json({ error: "Failed to fetch news" });
   }
 }
