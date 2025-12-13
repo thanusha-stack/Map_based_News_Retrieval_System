@@ -47,7 +47,8 @@ const reverseGeocode = async (lat, lng) => {
 // 🔹 Fetch news from BACKEND
 const fetchNews = async (city, category) => {
   try {
-    const res = await fetch(`/api/news?city=${city}&category=${category}`)
+    const res = await fetch(`/api/news?city=${city}&category=${category}&from=${from}&to=${to}`)
+
 
     const data = await res.json();
     return data.articles || [];
