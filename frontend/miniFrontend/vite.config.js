@@ -5,12 +5,10 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
-    proxy: process.env.NODE_ENV === 'development' ? {
-      '/api': {
-        target: 'http://localhost:3000',
-        changeOrigin: true,
-      },
-    } : undefined,
-  },
+  proxy: process.env.NODE_ENV === 'development' ? {
+    '/api': { target: 'http://localhost:3000', changeOrigin: true },
+  } : undefined,
+}
+,
   base: '/', 
 })
