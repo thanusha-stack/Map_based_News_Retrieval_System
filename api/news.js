@@ -1,18 +1,43 @@
-export default async function handler(req, res) {
-  const { city, category, from, to } = req.query;
+import React, { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 
-  const API_KEY = process.env.GNEWS_API_KEY;
-  if (!API_KEY) {
-    return res.status(500).json({ error: "API key missing" });
-  }
+const NewsPage = () => {
+  const location = useLocation();
+  const [articles, setArticles] = useState([]);
+  const clickedLocation = location.state?.clickedLocation;
 
-  const url = `https://gnews.io/api/v4/search?q=${city}&lang=en&country=in&max=10&from=${from}&to=${to}&apikey=${API_KEY}`;
+  useEffect(() => {
+    if (!clickedLocation) return;
 
-  try {
-    const response = await fetch(url);
-    const data = await response.json();
-    res.status(200).json(data);
-  } catch {
-    res.status(500).json({ error: "Failed to fetch news" });
-  }
-}
+    // You can convert coords to city if you want, or pass city from HomePage
+    const city = "chennai"; // or dynamically from reverse geocode
+    const from = "2025-01-01";
+    const to = "2025-01-07";
+
+    fetch(`/api/news?city=${city}&from=${from}&to=${to}`)
+      .then((res) => res.json())
+      .then((data) => setArticles(data.articles || []))
+      .catch((err) => console.error(err));
+  }, [clickedLocation]);
+
+  return (
+    <div className="p-4">
+      <h1 className="text-2xl font-bold mb-4">News</h1>
+      {articles.length === 0 ? (
+        <p>No news found.</p>
+      ) : (
+        articles.map((article, idx) => (
+          <div key={idx} className="mb-4 border-b pb-2">
+            <h2 className="font-semibold">{article.title}</h2>
+            <p>{article.description}</p>
+            <a href={article.url} target="_blank" rel="noreferrer">
+              Read more
+            </a>
+          </div>
+        ))
+      )}
+    </div>
+  );
+};
+
+export default NewsPage;
