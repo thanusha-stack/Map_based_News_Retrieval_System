@@ -1,18 +1,30 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from "react-leaflet";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Popup,
+  useMapEvents
+} from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
-import { FaMapMarkerAlt, FaSearch, FaCrosshairs, FaHistory } from "react-icons/fa";
+import {
+  FaMapMarkerAlt,
+  FaSearch,
+  FaCrosshairs,
+  FaHistory
+} from "react-icons/fa";
 
 const defaultCenter = [20.5937, 78.9629];
 const defaultZoom = 5;
 
+/* ✅ FIX: Use LOCAL marker images (no CDN) */
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
-  iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
-  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+  iconRetinaUrl: "/leaflet/marker-icon-2x.png",
+  iconUrl: "/leaflet/marker-icon.png",
+  shadowUrl: "/leaflet/marker-shadow.png"
 });
 
 const reverseGeocode = async (lat, lng) => {
@@ -25,7 +37,9 @@ const reverseGeocode = async (lat, lng) => {
 
 const forwardGeocode = async (place) => {
   const res = await fetch(
-    `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(place)}`
+    `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+      place
+    )}`
   );
   const data = await res.json();
   if (data.length > 0) {
@@ -38,7 +52,7 @@ function LocationMarker({ onSelectLocation }) {
   useMapEvents({
     click(e) {
       onSelectLocation([e.latlng.lat, e.latlng.lng]);
-    },
+    }
   });
   return null;
 }
@@ -84,8 +98,7 @@ const HomePage = () => {
         addRecentSearch(name, coords);
         navigate("/news", { state: { clickedLocation: coords } });
       },
-      (err) => {
-        console.error(err);
+      () => {
         alert("Unable to get location.");
       }
     );
@@ -105,7 +118,7 @@ const HomePage = () => {
         🗺 Map-based News Finder
       </h1>
 
-      {/* Floating Search Bar */}
+      {/* Search Bar */}
       <div className="bg-white shadow-lg rounded-full flex items-center w-full max-w-2xl p-2 mb-4">
         <FaSearch className="ml-3 text-gray-500" />
         <input
@@ -117,13 +130,13 @@ const HomePage = () => {
         />
         <button
           onClick={handleSearch}
-          className="bg-white-500 hover:text-gray-300 text-red-500 px-4 py-2 rounded-full mx-1 transition"
+          className="text-red-500 px-4 py-2 rounded-full mx-1"
         >
           Search
         </button>
         <button
           onClick={handleFindMyLocation}
-          className="bg-red-500 hover:bg-red-300 text-white px-4 py-2 rounded-full mx-1 flex items-center transition"
+          className="bg-red-500 text-white px-4 py-2 rounded-full mx-1 flex items-center"
         >
           <FaCrosshairs className="mr-1" /> Locate Me
         </button>
@@ -131,7 +144,11 @@ const HomePage = () => {
 
       {/* Map */}
       <div className="relative w-full max-w-5xl h-[500px] rounded-2xl overflow-hidden shadow-lg border-4 border-white">
-        <MapContainer center={mapCenter} zoom={defaultZoom} style={{ height: "100%", width: "100%" }}>
+        <MapContainer
+          center={mapCenter}
+          zoom={defaultZoom}
+          style={{ height: "100%", width: "100%" }}
+        >
           <TileLayer
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             attribution="&copy; OpenStreetMap contributors"
@@ -157,12 +174,17 @@ const HomePage = () => {
                 <button
                   onClick={() => {
                     setMapCenter(item.coords);
-                    setMarkers([{ position: item.coords, name: item.name }]);
-                    navigate("/news", { state: { clickedLocation: item.coords } });
+                    setMarkers([
+                      { position: item.coords, name: item.name }
+                    ]);
+                    navigate("/news", {
+                      state: { clickedLocation: item.coords }
+                    });
                   }}
-                  className="flex items-center w-full text-left hover:bg-gray-100 p-2 rounded-lg transition"
+                  className="flex items-center w-full text-left hover:bg-gray-100 p-2 rounded-lg"
                 >
-                  <FaMapMarkerAlt className="text-blue-500 mr-2" /> {item.name}
+                  <FaMapMarkerAlt className="text-blue-500 mr-2" />
+                  {item.name}
                 </button>
               </li>
             ))}
